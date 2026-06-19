@@ -54,23 +54,19 @@ def send_guidance_email(recipient_email: str, student_name: str):
     mail_from = os.getenv("MAIL_FROM")
     mail_server = os.getenv("MAIL_SERVER")
     mail_port = int(os.getenv("MAIL_PORT", 587))
-
     msg = MIMEMultipart()
     msg['From'] = mail_from
     msg['To'] = recipient_email
-    msg['Subject'] = "Ademy Academic Guidance Alert"
-
-    body = f"Hello {student_name},\n\nYour instructor has issued a guidance alert based on your recent performance. Please review your dashboard for recommendations."
+    msg['Subject'] = "Action Required: Academic Support & Guidance - Ademy AI"
+    body = f"Hello {student_name},\n\nOur AI system has detected a potential drop in your performance. Your instructor has issued a guidance alert. Please check your dashboard."
     msg.attach(MIMEText(body, 'plain'))
-
     try:
         server = smtplib.SMTP(mail_server, mail_port)
         server.starttls()
         server.login(mail_user, mail_pass)
         server.send_message(msg)
         server.quit()
-    except Exception as e:
-        print(f"SMTP Error: {e}")
+    except Exception as e: print(f"Email failed: {e}")
 
 # --- 1. AUTH ENDPOINTS ---
 @app.post("/api/signup", response_model=schemas.Token)
@@ -97,16 +93,28 @@ def login(user: schemas.UserLogin, db: Session = Depends(get_db)):
 def google_auth(token_data: schemas.GoogleToken, db: Session = Depends(get_db)):
     user_info = auth.verify_google_token(token_data.token)
     if not user_info: raise HTTPException(status_code=401, detail="Invalid Google Token")
+    
     email = user_info.get("email")
     name = user_info.get("name")
+    picture = user_info.get("picture") # Get the Gmail profile picture
+
     db_user = db.query(models.User).filter(models.User.email == email).first()
     if not db_user:
         db_user = models.User(full_name=name, email=email, role="student")
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
+
     access_token = auth.create_access_token(data={"sub": db_user.email, "role": db_user.role})
-    return {"access_token": access_token, "token_type": "bearer", "role": db_user.role, "full_name": db_user.full_name} 
+    
+    # Return the real name and Gmail picture to the frontend
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer", 
+        "role": db_user.role, 
+        "full_name": name, 
+        "picture": picture
+    }
 
 # --- 2. INSTRUCTOR RISK & INTERVENTION ---
 @app.get("/api/instructor/dashboard-stats")
@@ -144,18 +152,9 @@ def get_risk_analysis(db: Session = Depends(get_db), current_user: models.User =
         avg_score = sum([r.score for r in s.scores]) / len(s.scores) if s.scores else 65.0
         input_df = pd.DataFrame([[3, 1, avg_score]], columns=['study_time', 'absences', 'quiz_score'])
         prob = trained_model.predict_proba(input_df)[0][1]
-        
-        # INCREASED SENSITIVITY: Flag if prob < 85% or if any quiz failed
         failed_quizzes = [r for r in s.scores if r.score < 50]
         if prob < 0.85 or failed_quizzes:
-            risk_report.append({
-                "student_name": s.full_name,
-                "email": s.email,
-                "pass_probability": round(prob * 100, 1),
-                "reason": f"Failed {len(failed_quizzes)} modules" if failed_quizzes else "Inconsistent performance",
-                "risk_level": "High" if prob < 0.5 else "Medium",
-                "avatar": f"https://ui-avatars.com/api/?name={quote(s.full_name)}&background=fff1f2&color=e11d48"
-            })
+            risk_report.append({"student_name": s.full_name, "email": s.email, "pass_probability": round(prob * 100, 1), "reason": f"Failed {len(failed_quizzes)} modules" if failed_quizzes else "Inconsistent performance", "risk_level": "High" if prob < 0.5 else "Medium", "avatar": f"https://ui-avatars.com/api/?name={quote(s.full_name)}&background=fff1f2&color=e11d48"})
     return risk_report
 
 @app.post("/api/instructor/send-guidance")
@@ -164,12 +163,11 @@ def send_guidance(student_email: str, student_name: str, background_tasks: Backg
     background_tasks.add_task(send_guidance_email, student_email, student_name)
     return {"status": "success"}
 
-# --- 3. COMMON DATA ENDPOINTS ---
 @app.get("/api/instructor/students")
 def get_instructor_students(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     students = db.query(models.User).filter(func.lower(models.User.role) == "student").all()
     total_lessons = db.query(models.Lesson).count()
-    return [{"id": s.id, "name": s.full_name, "email": s.email, "role": s.role, "gpa": round((sum([r.score for r in s.scores])/len(s.scores) if s.scores else 0)/20, 2), "progress": round(len(s.progress)/total_lessons*100, 1) if total_lessons > 0 else 0, "risk": "At Risk", "avatar": f"https://ui-avatars.com/api/?name={s.full_name}"} for s in students]
+    return [{"id": s.id, "name": s.full_name, "email": s.email, "role": s.role, "gpa": round((sum([r.score for r in s.scores])/len(s.scores) if s.scores else 0)/20, 2), "progress": round(len(s.progress)/total_lessons*100, 1) if total_lessons > 0 else 0, "risk": "At Risk", "avatar": f"https://ui-avatars.com/api/?name={quote(s.full_name)}"} for s in students]
 
 @app.get("/api/instructor/class-analytics")
 def get_faculty_analytics(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
@@ -182,7 +180,46 @@ def get_curr_overview(db: Session = Depends(get_db), current_user: models.User =
     courses = db.query(models.Course).all()
     return [{"id": c.id, "title": c.title, "category": c.category, "modules_count": len(c.modules), "lessons_count": sum(len(m.lessons) for m in c.modules), "instructor": c.instructor, "thumbnail": c.thumbnail} for c in courses]
 
-# --- 4. STUDENT CORE ---
+# --- 3. STUDENT ANALYTICS (RESTORED MISSING ENDPOINTS) ---
+@app.get("/api/user/analytics/category-performance")
+def get_category_performance(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    results = db.query(models.QuizResult).filter_by(user_id=current_user.id).all()
+    categories = ["CS", "AI", "Backend", "Web", "Security", "Design", "Infrastructure"]
+    perf_data = []
+    for cat in categories:
+        cat_scores = []
+        for r in results:
+            module = db.query(models.Module).filter_by(id=r.module_id).first()
+            if module:
+                course = db.query(models.Course).filter_by(id=module.course_id).first()
+                if course and course.category == cat: cat_scores.append(r.score)
+        avg = sum(cat_scores) / len(cat_scores) if cat_scores else 0
+        perf_data.append({"subject": cat, "A": avg, "fullMark": 100})
+    return perf_data
+
+@app.get("/api/user/analytics/study-stats")
+def get_study_stats(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    total_lessons = db.query(models.Lesson).count()
+    completed_lessons = db.query(models.LessonProgress).filter_by(user_id=current_user.id, is_completed=True).count()
+    completion_rate = (completed_lessons / total_lessons * 100) if total_lessons > 0 else 0
+    all_scores = db.query(models.QuizResult.score).filter_by(user_id=current_user.id).all()
+    avg_accuracy = sum([s[0] for s in all_scores]) / len(all_scores) if all_scores else 0
+    return {"total_hours": round(completed_lessons * 0.5, 1), "completion_rate": round(completion_rate, 1), "streak": 1 if completed_lessons > 0 else 0, "accuracy": round(avg_accuracy, 1)}
+
+@app.get("/api/user/recommendations")
+def get_recommendations(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    failed_quizzes = db.query(models.QuizResult).filter(models.QuizResult.user_id == current_user.id, models.QuizResult.score < 50).all()
+    recommendations = []
+    for quiz in failed_quizzes:
+        module = db.query(models.Module).filter_by(id=quiz.module_id).first()
+        if module:
+            course = db.query(models.Course).filter_by(id=module.course_id).first()
+            recommendations.append({"module_title": module.title, "course_title": course.title, "course_id": course.id, "score": quiz.score, "reason": "Lower proficiency in core concepts."})
+    if not recommendations:
+        recent_course = db.query(models.Course).first()
+        recommendations.append({"module_title": "Advanced Integration", "course_title": recent_course.title if recent_course else "Active Learning", "course_id": recent_course.id if recent_course else 1, "score": 100, "reason": "Ready for advanced modules."})
+    return recommendations
+
 @app.get("/api/user/ai-status")
 def student_status(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     res = db.query(models.QuizResult).filter_by(user_id=current_user.id).order_by(models.QuizResult.taken_at.desc()).first()
@@ -190,6 +227,7 @@ def student_status(db: Session = Depends(get_db), current_user: models.User = De
     input_df = pd.DataFrame([[3, 1, score]], columns=['study_time', 'absences', 'quiz_score'])
     return {"status": "On Track" if trained_model.predict(input_df)[0] == 1 else "At Risk", "pass_probability": round(trained_model.predict_proba(input_df)[0][1]*100, 1), "recommendation": "Maintain consistency"}
 
+# --- 4. CORE DATA ENDPOINTS ---
 @app.get("/api/user/grades")
 def get_user_grades(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     return db.query(models.QuizResult).filter_by(user_id=current_user.id).all()

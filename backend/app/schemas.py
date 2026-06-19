@@ -5,7 +5,7 @@ class UserCreate(BaseModel):
     full_name: str
     email: EmailStr
     password: str
-    role: Optional[str] = "student" # Default to student if not provided
+    role: Optional[str] = "student" 
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -19,6 +19,7 @@ class Token(BaseModel):
     token_type: str
     role: str
     full_name: str
+    picture: Optional[str] = None # New field for Gmail photo
 
 class QuizResultSchema(BaseModel):
     id: int

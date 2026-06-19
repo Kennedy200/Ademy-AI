@@ -50,20 +50,24 @@ const Login = () => {
   };
 
   // 2. GOOGLE LOGIN LOGIC
-  const loginWithGoogle = useGoogleLogin({
+ const loginWithGoogle = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setIsLoading(true);
       setError('');
       try {
-        const response = await axios.post('http://localhost:8000/api/auth/google', {
+        const response = await axios.post('/api/auth/google', {
           token: tokenResponse.access_token
         });
 
+        // SAVE EVERYTHING TO LOCAL STORAGE
         localStorage.setItem('token', response.data.access_token);
         localStorage.setItem('role', response.data.role);
-
         localStorage.setItem('full_name', response.data.full_name);
-
+        
+        // FIX: Store the profile picture URL
+        if (response.data.picture) {
+            localStorage.setItem('user_picture', response.data.picture);
+        }
         
         navigate('/dashboard');
       } catch (err: any) {

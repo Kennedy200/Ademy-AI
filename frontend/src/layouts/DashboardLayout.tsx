@@ -22,36 +22,37 @@ const DashboardLayout = () => {
 
     const storedName = localStorage.getItem('full_name') || 'User';
     const storedRole = (localStorage.getItem('role') || 'student').toLowerCase();
+    const googlePicture = localStorage.getItem('user_picture'); // Retrieve Google picture
     
     setUserName(storedName);
     setUserRole(storedRole.toUpperCase()); 
 
     // --- ROLE REDIRECT GUARD ---
-    // This ensures instructors can't accidentally land on student overview
     if (storedRole === 'teacher' && (location.pathname === '/dashboard' || location.pathname === '/dashboard/')) {
         navigate('/instructor/dashboard');
     }
-    // Ensures students can't access instructor routes
     if (storedRole === 'student' && location.pathname.startsWith('/instructor')) {
         navigate('/dashboard');
     }
     
-    // Choose dynamic theme color based on role
-    const themeColor = storedRole === 'teacher' ? '4f46e5' : '10b981';
-    const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(storedName)}&background=${themeColor}&color=fff&bold=true`;
-    setUserAvatar(avatarUrl);
+    // --- AVATAR LOGIC ---
+    if (googlePicture && googlePicture !== "null") {
+        // Use real Gmail photo if it exists
+        setUserAvatar(googlePicture);
+    } else {
+        // Use dynamic initials avatar based on role color
+        const themeColor = storedRole === 'teacher' ? '4f46e5' : '10b981';
+        const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(storedName)}&background=${themeColor}&color=fff&bold=true`;
+        setUserAvatar(avatarUrl);
+    }
     
   }, [location.pathname, navigate]);
 
   // --- UPDATED LOGOUT LOGIC ---
   const handleLogout = () => {
     const role = localStorage.getItem('role') || 'student';
-    
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
-    localStorage.removeItem('full_name');
+    localStorage.clear();
 
-    // Redirect to the appropriate portal login
     if (role.toLowerCase() === 'teacher') {
         navigate('/instructor/login');
     } else {
@@ -91,7 +92,7 @@ const DashboardLayout = () => {
           <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-200 group-hover:border-indigo-500 transition-colors shadow-sm">
             <img src="/logo.png" alt="Ademy" className="w-full h-full object-cover" />
           </div>
-          <span className="text-xl font-black tracking-tighter text-slate-900 group-hover:text-indigo-600 transition-colors">Ademy.</span>
+          <span className="text-xl font-black tracking-tighter text-slate-900 group-hover:text-indigo-600 transition-colors font-sans italic">Ademy.</span>
         </Link>
       </div>
 
@@ -131,22 +132,18 @@ const DashboardLayout = () => {
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex font-sans">
       
-      {/* --- DESKTOP SIDEBAR --- */}
       <div className="hidden lg:block fixed inset-y-0 left-0 z-20">
         <SidebarContent />
       </div>
 
-      {/* --- MOBILE SIDEBAR (Framer Motion) --- */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
-            {/* Dark Backdrop */}
             <motion.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setIsMobileMenuOpen(false)}
               className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 lg:hidden"
             />
-            {/* Sliding Sidebar */}
             <motion.div 
               initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
@@ -164,7 +161,6 @@ const DashboardLayout = () => {
         )}
       </AnimatePresence>
 
-      {/* --- MAIN CONTENT AREA --- */}
       <div className="flex-1 flex flex-col min-h-screen lg:ml-72 transition-all duration-300">
         
         <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-10 flex items-center justify-between px-6 md:px-10">
@@ -195,7 +191,7 @@ const DashboardLayout = () => {
             <div className="w-px h-8 bg-slate-200 hidden md:block"></div>
 
             <button className="flex items-center gap-3 text-left group active:scale-95 transition-transform">
-              <div className="w-10 h-10 rounded-2xl overflow-hidden border-2 border-slate-100 group-hover:border-indigo-500 shadow-sm transition-colors">
+              <div className="w-10 h-10 rounded-[1rem] overflow-hidden border-2 border-slate-100 group-hover:border-indigo-500 shadow-sm transition-colors bg-white">
                 <img 
                   src={userAvatar} 
                   alt={userName} 
@@ -212,7 +208,7 @@ const DashboardLayout = () => {
 
         <main className="flex-1 p-6 md:p-10 overflow-x-hidden relative">
           <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 ${glowColor} rounded-full blur-[120px] -z-10 pointer-events-none`} />
-          <Outlet /> 6
+          <Outlet /> 
         </main>
 
       </div>

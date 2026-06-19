@@ -1,13 +1,18 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, ChevronRight, GraduationCap, LayoutDashboard, HelpCircle, BookOpen, UserCircle, ArrowRight, Sparkles, FileText, BarChart3 } from 'lucide-react';
+import { 
+  Menu, X, ChevronRight, GraduationCap, 
+  LayoutDashboard, HelpCircle, BookOpen, 
+  UserCircle, ArrowRight, Sparkles, FileText, 
+  BarChart3 
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
-  // Scroll handler for navbar glass effect
+  // Handle glassmorphism effect on scroll
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
@@ -20,12 +25,12 @@ const Header = () => {
       { name: 'Features', icon: <LayoutDashboard size={18} />, href: '#features' },
     ],
     teacher: [
-      { name: 'Instructor Portal', icon: <GraduationCap size={18} />, href: '#teacher' },
-      { name: 'Support', icon: <HelpCircle size={18} />, href: '#support' },
+      { name: 'Instructor Portal', icon: <GraduationCap size={18} />, path: '/instructor-auth' },
+      { name: 'Support', icon: <HelpCircle size={18} />, path: '/support' },
     ]
   };
 
-  // Bar chart data with progressive green shading
+  // Bar chart aesthetic data
   const performanceBars = [
     { height: 35, color: 'bg-emerald-100' },
     { height: 60, color: 'bg-emerald-200' },
@@ -53,8 +58,8 @@ const Header = () => {
       >
         <div className="max-w-7xl mx-auto px-6 md:px-12 flex justify-between items-center">
           
-          {/* LOGO & TITLE - Circular Style */}
-          <div className="flex items-center gap-3 group cursor-pointer">
+          {/* LOGO & TITLE */}
+          <Link to="/" className="flex items-center gap-3 group cursor-pointer">
             <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-white shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
               <img 
                 src="/logo.png" 
@@ -62,13 +67,14 @@ const Header = () => {
                 className="w-full h-full object-cover" 
               />
             </div>
-            <span className="text-2xl md:text-3xl font-black tracking-tighter text-slate-900 group-hover:text-emerald-600 transition-colors">
+            <span className="text-2xl md:text-3xl font-black tracking-tighter text-slate-900 group-hover:text-emerald-600 transition-colors italic">
               Ademy<span className="text-emerald-500">.</span>
             </span>
-          </div>
+          </Link>
 
           {/* DESKTOP MENU */}
           <div className="hidden lg:flex items-center gap-10">
+            {/* Student Section (Scroll links) */}
             <div className="flex items-center gap-8 border-r border-slate-200 pr-10">
               {navLinks.student.map((link) => (
                 <a 
@@ -81,12 +87,13 @@ const Header = () => {
               ))}
             </div>
 
+            {/* Teacher/Support Section (Page links) */}
             <div className="flex items-center gap-8">
               {navLinks.teacher.map((link) => (
                 <Link
                   key={link.name} 
-                  to="/instructor-auth" 
-                  className="text-[13px] font-black uppercase tracking-widest text-slate-400 hover:text-emerald-600 transition-colors"
+                  to={link.path || '/'} 
+                  className="text-[13px] font-black uppercase tracking-widest text-slate-400 hover:text-indigo-600 transition-colors"
                 >
                   {link.name}
                 </Link>
@@ -131,16 +138,16 @@ const Header = () => {
           </p>
           
           <div className="mt-12 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-5">
-            <Link to="/signup" className="w-full sm:w-auto bg-slate-900 text-white px-8 py-5 rounded-[2rem] font-black text-lg flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all shadow-2xl shadow-slate-300 hover:-translate-y-1 active:translate-y-0">
+            <Link to="/signup" className="w-full sm:w-auto bg-slate-900 text-white px-10 py-5 rounded-[2rem] font-black text-lg flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all shadow-2xl shadow-slate-300 hover:-translate-y-1 active:translate-y-0 text-center">
               Get Started <ArrowRight size={22} />
             </Link>
-            <Link to="/documentation" className="w-full sm:w-auto bg-white border-2 border-slate-100 text-slate-700 px-8 py-5 rounded-[2rem] font-black text-lg flex items-center justify-center gap-3 hover:bg-slate-50 transition-all">
+            <Link to="/documentation" className="w-full sm:w-auto bg-white border-2 border-slate-100 text-slate-700 px-10 py-5 rounded-[2rem] font-black text-lg flex items-center justify-center gap-3 hover:bg-slate-50 transition-all text-center">
               <FileText size={20} className="text-slate-500" /> Documentation
             </Link>
           </div>
         </motion.div>
 
-        {/* RIGHT VISUAL - DASHBOARD */}
+        {/* RIGHT VISUAL */}
         <motion.div 
           initial={{ opacity: 0, scale: 0.9, x: 40 }}
           animate={{ opacity: 1, scale: 1, x: 0 }}
@@ -158,7 +165,6 @@ const Header = () => {
               </div>
             </div>
             
-            {/* Animated Bars (Progressive Green) */}
             <div className="flex items-end gap-4 h-64 mb-10">
               {performanceBars.map((bar, i) => (
                 <motion.div 
@@ -183,7 +189,6 @@ const Header = () => {
             </div>
           </div>
 
-          {/* FLOATING STATUS CARD */}
           <motion.div 
             animate={{ y: [0, -20, 0] }}
             transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
@@ -215,10 +220,10 @@ const Header = () => {
               className="fixed right-0 top-0 h-full w-[85%] max-w-sm bg-white z-[70] shadow-2xl p-10 flex flex-col"
             >
               <div className="flex items-center gap-3 mb-16">
-                 <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-100">
+                 <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-100 shadow-sm">
                   <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
                  </div>
-                 <span className="text-2xl font-black tracking-tighter">Ademy</span>
+                 <span className="text-2xl font-black tracking-tighter italic">Ademy</span>
                  <button onClick={() => setIsOpen(false)} className="ml-auto p-4 bg-slate-50 rounded-3xl">
                    <X size={24} />
                  </button>
@@ -226,32 +231,38 @@ const Header = () => {
               
               <div className="space-y-12">
                 <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-300 mb-6 px-2">Main</p>
+                  <p className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-300 mb-6 px-2">Navigation</p>
                   <div className="space-y-2">
-                    {navLinks.student.map((link) => (
-                      <Link key={link.name} to="/instructor-auth" className="flex items-center justify-between p-5 rounded-3xl hover:bg-emerald-50 text-slate-800 font-black transition-all group">
-                        <div className="flex items-center gap-5">{link.icon} {link.name}</div>
+                    {/* Link to Instructor Auth */}
+                    <Link 
+                        to="/instructor-auth" 
+                        onClick={() => setIsOpen(false)}
+                        className="flex items-center justify-between p-5 rounded-3xl hover:bg-emerald-50 text-slate-800 font-black transition-all group border border-transparent hover:border-emerald-100"
+                    >
+                        <div className="flex items-center gap-5"><GraduationCap size={18} className="text-emerald-500" /> Faculty Portal</div>
                         <ChevronRight size={18} className="text-slate-300 group-hover:text-emerald-500" />
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-300 mb-6 px-2">Instructor Space</p>
-                  <div className="space-y-2">
-                    {navLinks.teacher.map((link) => (
-                      <a key={link.name} href={link.href} className="flex items-center justify-between p-5 rounded-3xl hover:bg-slate-50 text-slate-800 font-black transition-all group">
-                        <div className="flex items-center gap-5">{link.icon} {link.name}</div>
-                        <ChevronRight size={18} className="text-slate-300 group-hover:text-slate-900" />
-                      </a>
-                    ))}
+                    </Link>
+                    
+                    {/* Link to Support Hub */}
+                    <Link 
+                        to="/support" 
+                        onClick={() => setIsOpen(false)}
+                        className="flex items-center justify-between p-5 rounded-3xl hover:bg-blue-50 text-slate-800 font-black transition-all group border border-transparent hover:border-blue-100"
+                    >
+                        <div className="flex items-center gap-5"><HelpCircle size={18} className="text-blue-500" /> Support Hub</div>
+                        <ChevronRight size={18} className="text-slate-300 group-hover:text-blue-500" />
+                    </Link>
                   </div>
                 </div>
               </div>
               
-              <button className="mt-auto w-full bg-slate-900 text-white py-6 rounded-[2rem] font-black shadow-2xl shadow-slate-300 text-lg active:scale-95 transition-transform">
+              <Link 
+                to="/login" 
+                onClick={() => setIsOpen(false)}
+                className="mt-auto w-full bg-slate-900 text-white py-6 rounded-[2rem] font-black shadow-2xl shadow-slate-300 text-lg active:scale-95 transition-transform flex items-center justify-center"
+              >
                 SIGN IN
-              </button>
+              </Link>
             </motion.div>
           </>
         )}

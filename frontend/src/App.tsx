@@ -8,6 +8,8 @@ import Features from './components/Features/Features';
 import Ecosystem from './components/Ecosystem/Ecosystem';
 import Workflow from './components/Workflow/Workflow';
 import CTA from './components/CTA/CTA';
+import Documentation from './pages/Documentation/Documentation';
+import Support from './pages/Support/Support';
 
 // Auth Pages
 import Signup from './pages/Signup/Signup';
@@ -61,6 +63,8 @@ function App() {
           <Route path="/instructor-auth" element={<AuthChoice />} />
           <Route path="/instructor/signup" element={<InstructorSignup />} />
           <Route path="/instructor/login" element={<InstructorLogin />} />
+          <Route path="/documentation" element={<Documentation />} />
+          <Route path="/support" element={<Support />} />
 
           {/* --- STUDENT PORTAL ROUTES --- */}
           <Route path="/dashboard" element={<DashboardLayout />}>
