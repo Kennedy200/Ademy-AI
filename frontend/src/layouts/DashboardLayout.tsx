@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, BookOpen, FileEdit, LineChart, 
-  Sparkles, Settings, LogOut, Menu, X, Search, Bell,
+  Sparkles, Settings, LogOut, Menu, X, Search,
   Users, BarChart3, GraduationCap, ShieldAlert
 } from 'lucide-react';
 
@@ -11,7 +11,6 @@ const DashboardLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [userName, setUserName] = useState('Academic User');
   const [userRole, setUserRole] = useState('STUDENT');
-  const [userAvatar, setUserAvatar] = useState('');
   
   const location = useLocation();
   const navigate = useNavigate();
@@ -22,7 +21,6 @@ const DashboardLayout = () => {
 
     const storedName = localStorage.getItem('full_name') || 'User';
     const storedRole = (localStorage.getItem('role') || 'student').toLowerCase();
-    const googlePicture = localStorage.getItem('user_picture'); // Retrieve Google picture
     
     setUserName(storedName);
     setUserRole(storedRole.toUpperCase()); 
@@ -35,20 +33,9 @@ const DashboardLayout = () => {
         navigate('/dashboard');
     }
     
-    // --- AVATAR LOGIC ---
-    if (googlePicture && googlePicture !== "null") {
-        // Use real Gmail photo if it exists
-        setUserAvatar(googlePicture);
-    } else {
-        // Use dynamic initials avatar based on role color
-        const themeColor = storedRole === 'teacher' ? '4f46e5' : '10b981';
-        const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(storedName)}&background=${themeColor}&color=fff&bold=true`;
-        setUserAvatar(avatarUrl);
-    }
-    
   }, [location.pathname, navigate]);
 
-  // --- UPDATED LOGOUT LOGIC ---
+  // --- LOGOUT LOGIC ---
   const handleLogout = () => {
     const role = localStorage.getItem('role') || 'student';
     localStorage.clear();
@@ -132,10 +119,12 @@ const DashboardLayout = () => {
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex font-sans">
       
+      {/* --- DESKTOP SIDEBAR --- */}
       <div className="hidden lg:block fixed inset-y-0 left-0 z-20">
         <SidebarContent />
       </div>
 
+      {/* --- MOBILE SIDEBAR (Framer Motion) --- */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
@@ -161,8 +150,10 @@ const DashboardLayout = () => {
         )}
       </AnimatePresence>
 
+      {/* --- MAIN CONTENT AREA --- */}
       <div className="flex-1 flex flex-col min-h-screen lg:ml-72 transition-all duration-300">
         
+        {/* TOP HEADER */}
         <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-10 flex items-center justify-between px-6 md:px-10">
           <div className="flex items-center gap-4 flex-1">
             <button 
@@ -172,6 +163,7 @@ const DashboardLayout = () => {
               <Menu size={24} />
             </button>
 
+            {/* Search Bar */}
             <div className="hidden sm:flex items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 w-full max-w-md focus-within:ring-4 focus-within:ring-indigo-500/5 focus-within:border-slate-300 transition-all">
               <Search size={18} className="text-slate-300 mr-2" />
               <input 
@@ -183,29 +175,20 @@ const DashboardLayout = () => {
           </div>
 
           <div className="flex items-center gap-4 md:gap-6">
-            <button className="relative p-2.5 text-slate-400 hover:bg-slate-50 rounded-full transition-all active:scale-95">
-              <Bell size={22} />
-              <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-rose-500 border-2 border-white rounded-full animate-pulse"></span>
-            </button>
-            
             <div className="w-px h-8 bg-slate-200 hidden md:block"></div>
 
-            <button className="flex items-center gap-3 text-left group active:scale-95 transition-transform">
-              <div className="w-10 h-10 rounded-[1rem] overflow-hidden border-2 border-slate-100 group-hover:border-indigo-500 shadow-sm transition-colors bg-white">
-                <img 
-                  src={userAvatar} 
-                  alt={userName} 
-                  className="w-full h-full object-cover" 
-                />
-              </div>
+            {/* --- UPDATED: User Profile Section (Removed Picture & Bell) --- */}
+            <div className="flex items-center gap-3 text-right">
               <div className="hidden md:block">
                 <p className="text-sm font-black text-slate-900 leading-none mb-1">{userName}</p>
                 <p className={`text-[9px] font-black uppercase tracking-[0.2em] ${roleTextColor}`}>{userRole}</p>
               </div>
-            </button>
+            </div>
+
           </div>
         </header>
 
+        {/* DYNAMIC PAGE CONTENT GOES HERE */}
         <main className="flex-1 p-6 md:p-10 overflow-x-hidden relative">
           <div className={`absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-64 ${glowColor} rounded-full blur-[120px] -z-10 pointer-events-none`} />
           <Outlet /> 

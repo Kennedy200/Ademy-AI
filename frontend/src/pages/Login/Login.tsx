@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { useGoogleLogin } from '@react-oauth/google';
-import axios from 'axios';
+import axios from '../../api/axios'; // Fixed: use relative path to axios instance
 import { Mail, Lock, Eye, EyeOff, ArrowLeft, BarChart3, Quote, Loader2, AlertCircle } from 'lucide-react';
 
 const Login = () => {
@@ -34,13 +34,17 @@ const Login = () => {
     setError('');
 
     try {
-      const response = await axios.post('http://localhost:8000/api/login', {
+      // FIXED: Removed hardcoded URL. The custom axios knows the BaseURL.
+      const response = await axios.post('/api/login', {
         email: formData.email,
         password: formData.password
       });
 
+      // FIXED: Saving all necessary fields to LocalStorage
       localStorage.setItem('token', response.data.access_token);
       localStorage.setItem('role', response.data.role);
+      localStorage.setItem('full_name', response.data.full_name);
+      
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.detail || "Invalid email or password.");
@@ -50,7 +54,7 @@ const Login = () => {
   };
 
   // 2. GOOGLE LOGIN LOGIC
- const loginWithGoogle = useGoogleLogin({
+  const loginWithGoogle = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setIsLoading(true);
       setError('');
@@ -64,7 +68,7 @@ const Login = () => {
         localStorage.setItem('role', response.data.role);
         localStorage.setItem('full_name', response.data.full_name);
         
-        // FIX: Store the profile picture URL
+        // Store the profile picture URL if available
         if (response.data.picture) {
             localStorage.setItem('user_picture', response.data.picture);
         }
@@ -80,16 +84,16 @@ const Login = () => {
   });
 
   return (
-    <div className="min-h-screen w-full flex bg-white font-sans">
+    <div className="min-h-screen w-full flex bg-white font-sans overflow-hidden">
       
       {/* LEFT PANEL - Login Form */}
-      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-6 md:p-12 relative z-10">
+      <div className="w-full lg:w-1/2 flex flex-col items-center justify-center p-6 md:p-12 relative z-10 bg-slate-50 lg:bg-white">
         
         <div className="absolute top-6 left-6 flex items-center justify-between w-[calc(100%-3rem)] lg:hidden">
-          <Link to="/" className="w-10 h-10 flex items-center justify-center bg-slate-50 border border-slate-200 rounded-full text-slate-600 hover:bg-slate-100 transition-colors">
+          <Link to="/" className="w-10 h-10 flex items-center justify-center bg-white border border-slate-200 rounded-full text-slate-600 hover:bg-slate-100 transition-colors shadow-sm">
             <ArrowLeft size={20} />
           </Link>
-          <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-200">
+          <div className="w-10 h-10 rounded-full overflow-hidden border border-slate-200 shadow-sm">
             <img src="/logo.png" alt="Logo" className="w-full h-full object-cover" />
           </div>
         </div>
@@ -107,7 +111,7 @@ const Login = () => {
 
           {/* Error Banner */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-2xl flex items-center gap-3 text-sm font-bold">
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-2xl flex items-center gap-3 text-sm font-bold shadow-sm">
               <AlertCircle size={18} /> {error}
             </div>
           )}
@@ -117,7 +121,7 @@ const Login = () => {
             type="button"
             onClick={() => loginWithGoogle()}
             disabled={isLoading}
-            className="w-full bg-white border-2 border-slate-200 text-slate-700 font-bold py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-white border-2 border-slate-200 text-slate-700 font-bold py-3.5 rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-50 hover:border-slate-300 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
               <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -130,17 +134,17 @@ const Login = () => {
 
           <div className="flex items-center my-8">
             <div className="flex-1 h-px bg-slate-200"></div>
-            <span className="px-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Or sign in with email</span>
+            <span className="px-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Or authenticate via email</span>
             <div className="flex-1 h-px bg-slate-200"></div>
           </div>
 
           {/* Sign In Form */}
           <form className="space-y-5" onSubmit={handleLogin}>
             
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">Email Address</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+            <div className="space-y-2">
+              <label className="block text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Email Address</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-emerald-500 transition-colors">
                   <Mail size={18} />
                 </div>
                 <input 
@@ -149,15 +153,15 @@ const Login = () => {
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="name@gmail.com"
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-2xl pl-11 pr-4 py-3.5 outline-none focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all font-medium"
+                  className="w-full bg-slate-50 border-2 border-slate-100 text-slate-900 rounded-[1.25rem] pl-11 pr-4 py-4 outline-none focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all font-bold shadow-sm"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">Password</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+            <div className="space-y-2">
+              <label className="block text-[11px] font-black uppercase tracking-widest text-slate-400 ml-1">Account Password</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-emerald-500 transition-colors">
                   <Lock size={18} />
                 </div>
                 <input 
@@ -165,13 +169,13 @@ const Login = () => {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder="Enter your password"
-                  className="w-full bg-slate-50 border border-slate-200 text-slate-900 rounded-2xl pl-11 pr-12 py-3.5 outline-none focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all font-medium"
+                  placeholder="••••••••"
+                  className="w-full bg-slate-50 border-2 border-slate-100 text-slate-900 rounded-[1.25rem] pl-11 pr-12 py-4 outline-none focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all font-bold shadow-sm"
                 />
                 <button 
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                  className="absolute inset-y-0 right-4 flex items-center text-slate-400 hover:text-emerald-600 transition-colors"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -185,32 +189,30 @@ const Login = () => {
                   id="remember" 
                   className="w-4 h-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500/20"
                 />
-                <label htmlFor="remember" className="text-sm font-medium text-slate-600 cursor-pointer">
-                  Remember me
+                <label htmlFor="remember" className="text-sm font-bold text-slate-600 cursor-pointer">
+                  Keep me signed in
                 </label>
               </div>
-              <a href="#" className="text-sm font-bold text-emerald-600 hover:text-emerald-700 transition-colors">
-                Forgot password?
-              </a>
             </div>
 
+            {/* Submit Button */}
             <button 
               type="submit"
               disabled={isLoading}
-              className="w-full bg-slate-900 text-white font-black py-4 rounded-2xl hover:bg-emerald-600 transition-all active:scale-[0.98] shadow-xl shadow-slate-200 mt-6 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full bg-slate-900 text-white font-black py-5 rounded-[2rem] hover:bg-emerald-600 transition-all active:scale-[0.98] shadow-2xl shadow-slate-200 mt-6 flex items-center justify-center gap-3 disabled:opacity-70"
             >
-              {isLoading ? <><Loader2 size={20} className="animate-spin" /> Verifying...</> : "Sign In"}
+              {isLoading ? <><Loader2 size={24} className="animate-spin" /> Verifying Session...</> : "Sign In to Dashboard"}
             </button>
           </form>
 
-          <p className="text-center mt-8 text-sm font-medium text-slate-500">
-            Don't have an account? <Link to="/signup" className="text-slate-900 font-black hover:text-emerald-600 transition-colors ml-1">Sign up</Link>
+          <p className="text-center mt-12 text-sm font-bold text-slate-400">
+            Don't have an account? <Link to="/signup" className="text-slate-900 font-black hover:text-emerald-600 transition-colors ml-1 underline underline-offset-8 decoration-2">Create one here</Link>
           </p>
         </motion.div>
       </div>
 
-      {/* RIGHT PANEL - Branding & Copy */}
-      <div className="hidden lg:flex w-1/2 bg-slate-900 relative flex-col justify-between p-12 overflow-hidden rounded-l-[3rem] shadow-[0_0_40px_rgba(0,0,0,0.1)]">
+      {/* RIGHT PANEL - Branding & Copy (Hidden on Mobile) */}
+      <div className="hidden lg:flex w-1/2 bg-slate-900 relative flex-col justify-between p-12 overflow-hidden rounded-l-[4rem] shadow-[-20px_0_60px_rgba(0,0,0,0.2)]">
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
           <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-blue-500/20 rounded-full blur-[120px]" />
           <div className="absolute bottom-[10%] left-[-10%] w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[100px]" />
@@ -218,39 +220,43 @@ const Login = () => {
         </div>
 
         <div className="relative z-10 flex justify-end items-center w-full">
-          <Link to="/" className="flex items-center gap-3 text-slate-400 hover:text-white transition-colors text-sm font-bold group">
-            <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-            Back to Home
+          <Link to="/" className="flex items-center gap-3 text-slate-400 hover:text-white transition-colors text-[10px] font-black uppercase tracking-[0.3em] group bg-white/5 px-6 py-3 rounded-2xl border border-white/5">
+            <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
+            Back to landing
           </Link>
         </div>
 
         <div className="relative z-10 max-w-lg mx-auto w-full text-center mt-10">
-          <div className="w-20 h-20 bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 flex items-center justify-center text-emerald-400 mx-auto mb-8 shadow-2xl">
-            <BarChart3 size={40} />
-          </div>
-          <h1 className="text-4xl md:text-5xl font-black text-white leading-[1.1] tracking-tighter mb-6">
-            Pick up right where you <span className="text-emerald-400">left off.</span>
+          <motion.div 
+            initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+            className="w-24 h-24 bg-white/10 backdrop-blur-md rounded-[2.5rem] border border-white/20 flex items-center justify-center text-emerald-400 mx-auto mb-10 shadow-2xl"
+          >
+            <BarChart3 size={48} />
+          </motion.div>
+          <h1 className="text-5xl md:text-6xl font-black text-white leading-[1] tracking-tighter mb-8 italic">
+            Pick up where <br /><span className="text-emerald-400">you left off.</span>
           </h1>
-          <p className="text-lg text-slate-400 font-medium leading-relaxed">
-            Access your intelligent dashboard. Monitor your progress, review personalized recommendations, and stay ahead of the curve.
+          <p className="text-lg text-slate-400 font-medium leading-relaxed max-w-sm mx-auto">
+            Access your personalized learning roadmap and real-time AI performance monitoring.
           </p>
         </div>
 
-        <div className="relative z-10 bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-3xl mt-12 max-w-lg mx-auto w-full">
-          <Quote size={24} className="text-blue-400 mb-4 opacity-50" />
-          <p className="text-slate-300 font-medium leading-relaxed text-sm mb-6 italic">
-            "Ademy's predictive AI noticed I was struggling with Data Structures before I even failed a quiz. The recommended modules completely saved my semester."
+        <div className="relative z-10 bg-white/5 backdrop-blur-md border border-white/10 p-8 rounded-[3rem] mt-12 max-w-lg mx-auto w-full group hover:bg-white/10 transition-all cursor-default">
+          <Quote size={32} className="text-blue-500 mb-6 opacity-30" />
+          <p className="text-slate-300 font-medium leading-relaxed text-lg mb-8 italic">
+            "Ademy's predictive AI identifies bottlenecks before they impact your GPA. Experience a truly data-driven learning journey."
           </p>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-800">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl overflow-hidden bg-slate-800 border-2 border-white/10 group-hover:border-emerald-500 transition-colors">
               <img src="https://i.pravatar.cc/150?img=32" alt="Student" className="w-full h-full object-cover" />
             </div>
             <div>
-              <p className="text-sm font-bold text-white">Emma Richardson</p>
-              <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Computer Science, Year 3</p>
+              <p className="text-sm font-black text-white">System Verified User</p>
+              <p className="text-[10px] uppercase tracking-widest text-emerald-500 font-black">Active Learner</p>
             </div>
           </div>
         </div>
+
       </div>
       
     </div>
